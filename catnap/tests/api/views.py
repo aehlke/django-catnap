@@ -39,7 +39,7 @@ class EntryPoint(MyRestView):
         List the available top-level resource URLs.
         '''
         context = {
-            'decks_url': reverse('api-deck_list'),
+            'deck_list_url': reverse('api-deck_list'),
             #'users': reverse('rest-users'),
         }
         return self.render_to_response(context)
@@ -64,8 +64,6 @@ class Deck(DetailView, MyRestView):
 
     def get_object(self):
         return get_object_or_404(pk=self.kwargs.get('pk'))
-        #deck.url = reverse('api-deck', args=[deck.id])
-        #return deck
 
 
 

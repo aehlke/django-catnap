@@ -8,7 +8,7 @@ class UserResource(RestModelResource):
               'is_superuser', 'is_active', 'date_joined',)
 
     def get_data(self):
-        data = super(UserResource, self).get_data()
+        return super(UserResource, self).get_data()
 
 
 
@@ -21,6 +21,7 @@ class DeckResource(RestModelResource):
     def get_data(self):
         data = super(DeckResource, self).get_data()
         data['owner'] = UserResource(self.obj.owner).get_data()
+        return data
 
 
 

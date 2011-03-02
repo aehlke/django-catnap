@@ -154,6 +154,7 @@ class RestMultipleObjectMixin(SerializableMultipleObjectMixin):
                     % self.__class__.__name__)
 
         context_object_name = self.get_context_object_name(self.get_queryset())
+        #import pdb;pdb.set_trace()
         context[context_object_name] = list(
                 self.resource(_).get_data()
                 for _ in context[context_object_name])
