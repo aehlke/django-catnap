@@ -10,6 +10,7 @@ setup(
     classifiers=[
         "Programming Language :: Python",
         "Topic :: Software Development :: Libraries :: Python Modules",
+        "Intended Audience :: Developers",
         "Framework :: Django",
         "Development Status :: 3 - Alpha",
         "License :: OSI Approved :: BSD License"
