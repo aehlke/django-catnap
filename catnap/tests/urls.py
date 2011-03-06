@@ -10,6 +10,7 @@ api_urlpatterns = patterns('views',
     url('^$', EntryPoint.as_view(), name='api-entry_point'),
     url('^decks/$', DeckList.as_view(), name='api-deck_list'),
     url('^decks/(?P<pk>\d+)/$', Deck.as_view(), name='api-deck'),
+    #url('^users/$', User
 )
 
 

@@ -1,14 +1,19 @@
+from django.contrib.sites.models import Site
+from django.conf import settings
+import urlparse
+from django_urls import UrlMixin
 
 
-
-class RestResource(object):
+class RestResource(UrlMixin):
     def get_data(self):
         '''
         Adds a `url` field if this class has a `get_url` method.
         '''
         data = {}
-        if hasattr(self, 'get_url'):
+        try:
             data['url'] = self.get_url()
+        except NotImplementedError:
+            pass
         return data
 
 

@@ -184,5 +184,6 @@ def json_serialize(data):
 
     ret = base_serialize(data)
     return json.dumps(ret,
-            cls=DateTimeAwareJSONEncoder, ensure_ascii=False, indent=4)
+            cls=DateTimeAwareJSONEncoder,
+            ensure_ascii=False, sort_keys=True, indent=4)
     

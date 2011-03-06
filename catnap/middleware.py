@@ -48,3 +48,19 @@ class HttpMethodsFallbackMiddleware(object):
                 return HttpResponseNotAllowed(ALL_HTTP_METHODS)
         return None
 
+
+class HttpExceptionMiddleware(object):
+    '''
+    Catches `HttpException` exceptions, which contain a `response`
+    property, which should be a subclass instace of HttpResponse.
+
+    This middleware simply returns the `response` member.
+
+    See `catnap.exceptions`.
+    '''
+    def process_exception(self, request, exception):
+        if (hasattr(exception, response)
+                and isinstance(exception, HttpResponse)):
+            return exception.response
+        return None
+

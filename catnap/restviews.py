@@ -1,16 +1,15 @@
 from django.http import HttpResponse
 from django.http import HttpResponseNotAllowed, HttpResponseBadRequest
+from catnap.http import HttpResponseNotAcceptable
 from django.core.exceptions import ImproperlyConfigured
 from django.utils import simplejson as json
-#from djclsview import View
 from django.views.generic.base import View
 from django.views.generic.detail import SingleObjectMixin, BaseDetailView
 from django.views.generic.list import MultipleObjectMixin, BaseListView
 from serializers import json_serialize
+from django_urls import UrlMixin
 
 
-class HttpResponseNotAcceptable(HttpResponse):
-    status_code = 406
 
 
 class RestView(View):
@@ -42,48 +41,6 @@ class RestView(View):
                             **httpresponse_kwargs)
     
 
-#class ResourceView(View):
-#    '''
-#    Currently we only support a single content type per resource.
-#    '''
-#    content_type = None
-
-#    def __call__(self):
-#        resp = self._route(self.request.method)
-#        resp = self._process_response(resp)
-#        return self.process_response(resp)
-        
-#    def _process_response(self, response):
-#        if self.content_type:
-#            response['Content-Type'] = self.content_type
-
-#        # Make sure the `Accept` header matches our content type.
-#        if self.content_type not in self.request.accept:
-#            return HttpResponseNotAcceptable()
-            
-#        return response
-
-#    def process_response(self, response):
-#        '''
-#        Called on each view method return value.
-#        Override this in a sublcass to add filtering to the HTTP
-#        response object.
-#        '''
-#        return response
-        
-
-#class JsonMixin(object):
-#    '''
-#    View methods should return data structures which are 
-#    serializable into JSON. This serializes them and puts them
-#    into an HttpResponse instance.
-
-#    Sets `content_type` to "application/json" which should absolutely 
-#    be overridden with a more descriptive content type.
-#    '''
-#    # Override this for vendor-specific content types.
-#    #     e.g "application/vnd.mycompany.FooBar+json"
-#    content_type = 'application/json'
 
 
 class SerializableMultipleObjectMixin(MultipleObjectMixin):
@@ -93,11 +50,7 @@ class SerializableMultipleObjectMixin(MultipleObjectMixin):
 
     For example, instead of having both `\{modelname\}_list` and
     `object_list` items, it only has `\{modelname\}_list`.
-
-    It also accepts a `fields` property which limits the queryset
-    in the context to only including certain fields.
     '''
-    fields = None
 
     def get_context_object_name(self, object_list):
         '''
@@ -114,102 +67,117 @@ class SerializableMultipleObjectMixin(MultipleObjectMixin):
         #queryset = kwargs.pop('object_list')
         #import pdb;pdb.set_trace()
         queryset = self.get_queryset()
-        page_size = self.get_paginate_by(queryset)
-        if page_size:
-            paginator, page, queryset, is_paginated = self.paginate_queryset(
-                    queryset, page_size)
-            context = {
-                'paginator': paginator,
-                'page_obj': page,
-                'is_paginated': is_paginated,
-            }
-        else:
-            context = {
-                'paginator': None,
-                'page_obj': None,
-                'is_paginated': False,
-            }
-        context.update(kwargs)
+        #TODO add pagination
+        #page_size = self.get_paginate_by(queryset)
+        #if page_size:
+        #    paginator, page, queryset, is_paginated = self.paginate_queryset(
+        #            queryset, page_size)
+        #    context = {
+        #        #'paginator': paginator,
+        #        'page_obj': page,
+        #        'is_paginated': is_paginated,
+        #    }
+        #else:
+        #    context = {
+        #        'is_paginated': False,
+        #    }
 
-        ## Limit our queryset?
-        #if self.fields:
-        #    queryset = queryset.values(self.fields)
+        context = {}
 
+        # Add the list of objects
         context_object_name = self.get_context_object_name(queryset)
         context[context_object_name] = queryset
 
+        context.update(kwargs)
+
         return context
 
+class ResourceClassDependencyMixin(object):
+    resource_class = None
 
-class RestMultipleObjectMixin(SerializableMultipleObjectMixin):
-    resource = None
-
-    def get_context_data(self, object_list=None, **kwargs):
-        context = super(RestMultipleObjectMixin, self).get_context_data(**kwargs)
-
-        if not self.resource:
+    def get_resource_class(self):
+        if not self.resource_class:
             raise ImproperlyConfigured(
-                    u"'%s' must define 'resource', a class which takes "
+                    u"'%s' must define 'resource_class', a class which takes "
                     "a model instance and implements a 'get_data' method."
                     % self.__class__.__name__)
+        return self.resource_class
 
+
+class RestMultipleObjectMixin(SerializableMultipleObjectMixin,
+                              ResourceClassDependencyMixin,
+                              UrlMixin):
+    '''
+    Extends the `SerializableMultipleObjectMixin` class to instantiate
+    `Resource` objects for every object in the list.
+
+    Since this is a convenience class for representing a list of resources,
+    this list itself doesn't have its own corresponding `Resource` subclass,
+    but we still support a `get_url` method to add a `url` key to the
+    context, as `Resource` does. (Or `get_url_path`, which will be expanded
+    to become an absolute URL, as per `UrlMixin`'s behavior.)
+    '''
+    
+    def get_context_data(self, object_list=None, **kwargs):
+        context = super(RestMultipleObjectMixin, self).get_context_data(**kwargs)
         context_object_name = self.get_context_object_name(self.get_queryset())
-        #import pdb;pdb.set_trace()
+
+        try:
+            context['url'] = self.get_url()
+        except NotImplementedError:
+            pass
+
+        resource_class = self.get_resource_class()
         context[context_object_name] = list(
-                self.resource(_).get_data()
+                resource_class(_).get_data()
                 for _ in context[context_object_name])
         return context
 
 
-class SerializableSingleObjectMixin(SingleObjectMixin):
+class RestSingleObjectMixin(SingleObjectMixin,
+                            ResourceClassDependencyMixin):
     '''
-    This is a version of SingleObjectMixin which is more careful
+    This is a version of `SingleObjectMixin` which is more careful
     to avoid duplicate or otherwise unnecessary context items.
 
-    For example, instead of having both `\{modelname\}_list` and
-    `object_list` items, it only has `\{modelname\}_list`.
-
-    It also accepts a `fields` property which limits the queryset
-    in the context to only including certain fields.
+    Instantiates a `Resource` object for the given detail object, and uses 
+    its `get_data` return value for the context. The entire context is 
+    the object itself, instead of the default Django behavior of having 
+    the object a level deep, e.g. `{"object": etc}`.
     '''
-    fields = None
-
-    def get_context_object_name(self, obj):
-        '''
-        Get the name to use for the object.
-        '''
-        return super(SerializableSingleObjectMixin, self).get_context_object_name(
-            obj) or 'object'
 
     def get_context_data(self, **kwargs):
-        context = kwargs
-        #context_object_name = self.get_context_object_name(self.object)
-        #if context_object_name:
-            #context[context_object_name] = self.object
+        '''
+        Relies on `get_object()` to retrieve the desired object used to
+        instantiate a `Resource`. Don't pass an `object` kwarg to this
+        method -- if you want to specify an object rather than have this
+        class find one automatically from our queryset or model class,
+        then override the `get_object` method to return what you want.
+
+        Any `kwargs` passed to this will be added to the context.
+        '''
+        resource_class = self.get_resource_class()
+        resource = resource_class(self.get_object())
+        context = resource.get_data()
+        context.update(kwargs)
         return context
 
-class BaseSerializableDetailView(SingleObjectMixin, View):
+
+
+class DetailView(RestSingleObjectMixin, View):
     def get(self, request, **kwargs):
-        self.object = self.get_object()
-        context = self.get_context_data(object=self.object)
+        context = self.get_context_data()
         return self.render_to_response(context)
 
 
-class BaseSerializableListView(BaseListView, RestMultipleObjectMixin):
-    pass
-    
-
-class DetailView(BaseSerializableDetailView):
-    pass
-
-class ListView(BaseSerializableListView):
+class ListView(RestMultipleObjectMixin, BaseListView):
     pass
 
 
 class JsonResponseMixin(object):
     # Override this for vendor-specific content types.
     #     e.g "application/vnd.mycompany.FooBar+json"
-    #content_type = 'application/json'
+    content_type = 'application/json'
 
     def render_to_response(self, context):
         'Returns a JSON response containing `context` as payload'
@@ -288,6 +256,48 @@ class AutoContentTypeMixin(object):
 
 
 
+#class ResourceView(View):
+#    '''
+#    Currently we only support a single content type per resource.
+#    '''
+#    content_type = None
+
+#    def __call__(self):
+#        resp = self._route(self.request.method)
+#        resp = self._process_response(resp)
+#        return self.process_response(resp)
+        
+#    def _process_response(self, response):
+#        if self.content_type:
+#            response['Content-Type'] = self.content_type
+
+#        # Make sure the `Accept` header matches our content type.
+#        if self.content_type not in self.request.accept:
+#            return HttpResponseNotAcceptable()
+            
+#        return response
+
+#    def process_response(self, response):
+#        '''
+#        Called on each view method return value.
+#        Override this in a sublcass to add filtering to the HTTP
+#        response object.
+#        '''
+#        return response
+        
+
+#class JsonMixin(object):
+#    '''
+#    View methods should return data structures which are 
+#    serializable into JSON. This serializes them and puts them
+#    into an HttpResponse instance.
+
+#    Sets `content_type` to "application/json" which should absolutely 
+#    be overridden with a more descriptive content type.
+#    '''
+#    # Override this for vendor-specific content types.
+#    #     e.g "application/vnd.mycompany.FooBar+json"
+#    content_type = 'application/json'
 
 
 
