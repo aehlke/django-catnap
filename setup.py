@@ -28,6 +28,7 @@ setup(
         'setuptools',
         'Django >= 1.3',
         'webob',
+        'rfc3339',
     ],
     #entry_points
 )

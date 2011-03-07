@@ -12,16 +12,38 @@ from django_urls import UrlMixin
 
 
 
+class _HttpResponseShortcuts(object):
+    '''
+    Shortcuts for `RestView.get_response`.
+    '''
+    def __init__(self, parent_view):
+        self.parent = parent_view
+
+    def see_other(redirect_to):
+        return self.parent.get_response(redirect_to,
+                content_type='',
+                httpresponse_class=HttpResponseSeeOther)
+
+    def created(location):
+        return self.parent.get_response(location,
+                content_type='',
+                httpresponse_class=HttpResponseCreated)
+
+
 class RestView(View):
     '''
     A base class view that cares a little more about RESTy things,
-    like strict content types.
+    like strict content types and HTTP response codes.
 
     Also lets you use itself as a function rather than making
     you put as_view() in your URL conf. (-not yet implemented-!)
 
     Requires `HttpAcceptMiddleware` to be installed.
     '''
+
+    def __init__(self, *args, **kwargs):
+        responses = _HttpResponseShortcuts(self)
+
     def dispatch(self, request, *args, **kwargs):
        # Make sure the `Accept` header matches our content type.
        if self.content_type not in request.accept:
@@ -29,16 +51,38 @@ class RestView(View):
 
        return super(RestView, self).dispatch(request, *args, **kwargs)
 
+    def get_response(self,
+            content,
+            content_type=None,
+            httpresponse_class=HttpResponse,
+            **httpresponse_kwargs):
+        '''
+        Construct an `HttpResponse` object, or whatever response class
+        is specified by `httpresponse_class`.
 
-    def get_response(self, content, **httpresponse_kwargs):
-        'Construct an `HttpResponse` object.'
+        The `content_type` defaults to whatever `self.content_type`
+        evaluates to.
+
+        To take advantage of `self.content_type` and other mixins
+        which may process responses, this method should always be used 
+        to construct `HttpResponse` objects (or any other methods
+        which end up calling this one) instead of using `HttpResponse`
+        directly.
+        '''
         ## The following are for IE especially
         #response['Pragma'] = 'no-cache'
         #response['Cache-Control'] = 'must-revalidate'
         #response['If-Modified-Since'] = str(datetime.datetime.now())
-        return HttpResponse(content,
-                            content_type=self.content_type,
-                            **httpresponse_kwargs)
+        if content_type is None:
+            content_type = self.content_type
+
+        if content_type == '':
+            content_type = None
+
+        return httpresponse_class(content,
+                                  content_type=content_type,
+                                  **httpresponse_kwargs)
+
     
 
 
@@ -92,7 +136,7 @@ class SerializableMultipleObjectMixin(MultipleObjectMixin):
 
         return context
 
-class ResourceClassDependencyMixin(object):
+class _ResourceClassDependencyMixin(object):
     resource_class = None
 
     def get_resource_class(self):
@@ -105,7 +149,7 @@ class ResourceClassDependencyMixin(object):
 
 
 class RestMultipleObjectMixin(SerializableMultipleObjectMixin,
-                              ResourceClassDependencyMixin,
+                              _ResourceClassDependencyMixin,
                               UrlMixin):
     '''
     Extends the `SerializableMultipleObjectMixin` class to instantiate
@@ -135,7 +179,7 @@ class RestMultipleObjectMixin(SerializableMultipleObjectMixin,
 
 
 class RestSingleObjectMixin(SingleObjectMixin,
-                            ResourceClassDependencyMixin):
+                            _ResourceClassDependencyMixin):
     '''
     This is a version of `SingleObjectMixin` which is more careful
     to avoid duplicate or otherwise unnecessary context items.
@@ -174,18 +218,30 @@ class ListView(RestMultipleObjectMixin, BaseListView):
     pass
 
 
-class JsonResponseMixin(object):
+class _BaseEmitterMixin(object):
+    @property
+    def serialize_context(self):
+        raise NotImplementedError(
+                'serialize_context method must be implemented in subclass.')
+
+    def render_to_response(self, context):
+        '''
+        Returns a response containing `context` as payload,
+        using the implemented serializer method.
+        '''
+        return self.get_response(self.serialize_context(context))
+    
+
+class JsonEmitterMixin(_BaseEmitterMixin):
     # Override this for vendor-specific content types.
     #     e.g "application/vnd.mycompany.FooBar+json"
     content_type = 'application/json'
 
-    def render_to_response(self, context):
-        'Returns a JSON response containing `context` as payload'
-        return self.get_response(self.convert_context_to_json(context))
-
     def convert_context_to_json(self, context):
         'Convert the context dictionary into a JSON object'
         return json_serialize(context)
+
+    serialize_context = convert_context_to_json
 
 
 class AutoContentTypeMixin(object):

@@ -17,6 +17,8 @@ from django.http import HttpResponse
 from django.core import serializers
 from django.utils.functional import Promise
 from django.utils.encoding import force_unicode
+import datetime
+from rfc3339 import rfc3339
 
 #from utils import HttpStatusCode
 
@@ -44,6 +46,8 @@ def base_serialize(data):
     in cases where it doesn't recognize the type,
     it will fall back to Django's `smart_unicode`.
 
+    Uses RFC 3339 for datetimes, dates, and times.
+
     Returns `dict`.
     '''
     def _any(thing):
@@ -62,6 +66,9 @@ def base_serialize(data):
             ret = _dict(thing)
         elif isinstance(thing, decimal.Decimal):
             ret = str(thing)
+        elif isinstance(thing,
+                (datetime.datetime, datetime.date, datetime.time)):
+            ret = rfc3339(thing, use_system_timezone=False)
         elif isinstance(thing, Model):
             # e.g. a single element from a queryset
             ret = _model(thing)

@@ -7,13 +7,13 @@ from django.shortcuts import get_object_or_404, render_to_response
 from django.template import RequestContext, loader
 from django.core.urlresolvers import reverse
 from django.utils.decorators import method_decorator
-from catnap.restviews import (JsonResponseMixin, AutoContentTypeMixin,
+from catnap.restviews import (JsonEmitterMixin, AutoContentTypeMixin,
         RestView, ListView, DetailView)
 from restresources import UserResource, DeckResource
 import models
 
 
-class MyRestView(JsonResponseMixin, AutoContentTypeMixin, RestView):
+class MyRestView(JsonEmitterMixin, AutoContentTypeMixin, RestView):
     '''
     Our JSON-formatted response base class.
     '''

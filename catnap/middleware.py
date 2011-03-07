@@ -59,7 +59,7 @@ class HttpExceptionMiddleware(object):
     See `catnap.exceptions`.
     '''
     def process_exception(self, request, exception):
-        if (hasattr(exception, response)
+        if (hasattr(exception, 'response')
                 and isinstance(exception, HttpResponse)):
             return exception.response
         return None
