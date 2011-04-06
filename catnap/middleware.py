@@ -1,6 +1,7 @@
 # Some code adapted from the WebOb project: http://bitbucket.org/ianb/webob/
 
 from webob.acceptparse import accept_property, Accept, MIMEAccept, NilAccept, MIMENilAccept, NoAccept
+from django.http import HttpResponse
 
 ALL_HTTP_METHODS = ['OPTIONS', 'GET', 'HEAD', 'POST', 'PUT', 'DELETE', 'TRACE']
 
@@ -26,7 +27,6 @@ class HttpAcceptMiddleware(object):
             request.accept = MIMEAccept('Accept', accept_val)
         else:
             request.accept = MIMENilAccept('Accept')
-        return None
 
 
 class HttpMethodsFallbackMiddleware(object):
@@ -46,7 +46,6 @@ class HttpMethodsFallbackMiddleware(object):
                 request.method = request.POST[self.FALLBACK_PARAM]
             else:
                 return HttpResponseNotAllowed(ALL_HTTP_METHODS)
-        return None
 
 
 class HttpExceptionMiddleware(object):
@@ -60,7 +59,6 @@ class HttpExceptionMiddleware(object):
     '''
     def process_exception(self, request, exception):
         if (hasattr(exception, 'response')
-                and isinstance(exception, HttpResponse)):
+                and isinstance(exception.response, HttpResponse)):
             return exception.response
-        return None
 

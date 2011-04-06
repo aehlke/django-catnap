@@ -1,14 +1,17 @@
+from auth import AuthenticationMixin
+from catnap.http import (HttpResponseNotAcceptable, HttpResponseNoContent,
+        HttpResponseCreated, HttpResponseTemporaryRedirect)
+from django.core.exceptions import ImproperlyConfigured
 from django.http import HttpResponse
 from django.http import HttpResponseNotAllowed, HttpResponseBadRequest
-from catnap.http import HttpResponseNotAcceptable
-from django.core.exceptions import ImproperlyConfigured
 from django.utils import simplejson as json
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
 from django.views.generic.base import View
 from django.views.generic.detail import SingleObjectMixin, BaseDetailView
 from django.views.generic.list import MultipleObjectMixin, BaseListView
-from serializers import json_serialize
 from django_urls import UrlMixin
-
+from serializers import json_serialize
 
 
 
@@ -19,18 +22,29 @@ class _HttpResponseShortcuts(object):
     def __init__(self, parent_view):
         self.parent = parent_view
 
-    def see_other(redirect_to):
+    def see_other(self, redirect_to):
         return self.parent.get_response(redirect_to,
                 content_type='',
                 httpresponse_class=HttpResponseSeeOther)
 
-    def created(location):
+    def created(self, location):
         return self.parent.get_response(location,
                 content_type='',
                 httpresponse_class=HttpResponseCreated)
 
+    def temporary_redirect(self, redirect_to):
+        return self.parent.get_response(redirect_to,
+                content_type='',
+                httpresponse_class=HttpResponseTemporaryRedirect)
 
-class RestView(View):
+    def no_content(self):
+        return self.parent.get_response(None,
+                content_type='',
+                httpresponse_class=HttpResponseNoContent)
+        
+
+
+class RestView(AuthenticationMixin, View):
     '''
     A base class view that cares a little more about RESTy things,
     like strict content types and HTTP response codes.
@@ -42,14 +56,26 @@ class RestView(View):
     '''
 
     def __init__(self, *args, **kwargs):
-        responses = _HttpResponseShortcuts(self)
+        self.responses = _HttpResponseShortcuts(self)
 
+    @method_decorator(csrf_exempt)
     def dispatch(self, request, *args, **kwargs):
-       # Make sure the `Accept` header matches our content type.
-       if self.content_type not in request.accept:
-           return HttpResponseNotAcceptable()
+        # Make sure the `Accept` header matches our content type.
+        #import pdb;pdb.set_trace()
+        if self.content_type not in request.accept:
+            return HttpResponseNotAcceptable()
 
-       return super(RestView, self).dispatch(request, *args, **kwargs)
+        return super(RestView, self).dispatch(request, *args, **kwargs)
+
+    def allowed_methods(self, request, *args, **kwargs):
+        '''Returns a list of allowed HTTP verbs.'''
+        return [m for m in self.http_method_names if hasattr(self, m)]
+
+    def options(self, request, *args, **kwargs):
+        resp = self.get_response(None, content_type='')
+        resp['Access-Control-Allow-Methods'] = ', '.join(
+                self.allowed_methods(request, *args, **kwargs)).upper()
+        return resp
 
     def get_response(self,
             content,
@@ -216,6 +242,16 @@ class DetailView(RestSingleObjectMixin, View):
 
 class ListView(RestMultipleObjectMixin, BaseListView):
     pass
+
+
+class DeletionMixin(object):
+    '''
+    A mixin providing the ability to delete objects.
+    '''
+    def delete(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        self.object.delete()
+        return HttpResponseNoContent()
 
 
 class _BaseEmitterMixin(object):
