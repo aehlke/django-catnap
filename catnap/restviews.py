@@ -109,9 +109,6 @@ class RestView(AuthenticationMixin, View):
                                   content_type=content_type,
                                   **httpresponse_kwargs)
 
-    
-
-
 
 class SerializableMultipleObjectMixin(MultipleObjectMixin):
     '''
@@ -321,8 +318,6 @@ class AutoContentTypeMixin(object):
         if self.content_type_template_string:
             subtype = self.content_subtype or self.__class__.__name__
             return self.content_type_template_string.format(subtype)
-
-    
 
 
 

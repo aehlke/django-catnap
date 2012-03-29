@@ -1,12 +1,12 @@
 # This module mostly taken from django-tastypie (thanks!), 
 # which is also BSD-licensed.
 # Also uses part of Django-Rest-Framework.
-
 import base64
+
 from django.contrib.auth import authenticate as django_authenticate
-from exceptions import HttpUnauthorizedException
 from django.middleware.csrf import CsrfViewMiddleware
 
+from exceptions import HttpUnauthorizedException
 
 
 class Authentication(object):
@@ -103,7 +103,6 @@ class AuthenticationMixin(object):
     authentication method you want. It defaults to a debug-mode
     one which always authenticates successfully.
     '''
-
     # Which authentication to use.
     authenticator = Authentication()
     authenticators = None
@@ -123,6 +122,4 @@ class AuthenticationMixin(object):
 
         return super(AuthenticationMixin, self).dispatch(
             request, *args, **kwargs)
-
-
 
