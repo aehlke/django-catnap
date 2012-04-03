@@ -105,7 +105,7 @@ class RestView(AuthenticationMixin, View):
         if content_type == '':
             content_type = None
 
-        return httpresponse_class(content,
+        return httpresponse_class(content or '',
                                   content_type=content_type,
                                   **httpresponse_kwargs)
 
