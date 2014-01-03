@@ -44,7 +44,7 @@ class _HttpResponseShortcuts(object):
         
 
 
-class RestView(AuthenticationMixin, View):
+class RestView(View):
     '''
     A base class view that cares a little more about RESTy things,
     like strict content types and HTTP response codes.
