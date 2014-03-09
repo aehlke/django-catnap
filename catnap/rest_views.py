@@ -1,6 +1,3 @@
-from auth import AuthenticationMixin
-from catnap.http import (HttpResponseNotAcceptable, HttpResponseNoContent,
-        HttpResponseCreated, HttpResponseTemporaryRedirect)
 from django.core.exceptions import ImproperlyConfigured
 from django.http import HttpResponse
 from django.http import HttpResponseNotAllowed, HttpResponseBadRequest
@@ -11,7 +8,10 @@ from django.views.generic.base import View
 from django.views.generic.detail import SingleObjectMixin, BaseDetailView
 from django.views.generic.list import MultipleObjectMixin, BaseListView
 from django_urls import UrlMixin
-from serializers import json_serialize
+
+from catnap.http import (HttpResponseNotAcceptable, HttpResponseNoContent,
+        HttpResponseCreated, HttpResponseTemporaryRedirect)
+from catnap.serializers import json_serialize
 
 
 
@@ -54,14 +54,12 @@ class RestView(View):
 
     Requires `HttpAcceptMiddleware` to be installed.
     '''
-
     def __init__(self, *args, **kwargs):
         self.responses = _HttpResponseShortcuts(self)
 
     @method_decorator(csrf_exempt)
     def dispatch(self, request, *args, **kwargs):
         # Make sure the `Accept` header matches our content type.
-        #import pdb;pdb.set_trace()
         if self.content_type not in request.accept:
             return HttpResponseNotAcceptable()
 
@@ -263,7 +261,7 @@ class _BaseEmitterMixin(object):
         using the implemented serializer method.
         '''
         return self.get_response(self.serialize_context(context))
-    
+
 
 class JsonEmitterMixin(_BaseEmitterMixin):
     # Override this for vendor-specific content types.

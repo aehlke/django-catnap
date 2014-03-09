@@ -2,8 +2,8 @@ from django.test import TestCase
 from django.core.urlresolvers import reverse
 from django.utils import simplejson as json
 from models import Deck
-from restresources import DeckResource, UserResource
-from catnap.restresources import RestModelResource
+from rest_resources import DeckResource, UserResource
+from catnap.rest_resources import RestModelResource
 
 USERNAME = 'alex'
 PASSWORD = 'f'

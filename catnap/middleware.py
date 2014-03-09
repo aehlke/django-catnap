@@ -3,7 +3,9 @@
 from webob.acceptparse import accept_property, Accept, MIMEAccept, NilAccept, MIMENilAccept, NoAccept
 from django.http import HttpResponse
 
+
 ALL_HTTP_METHODS = ['OPTIONS', 'GET', 'HEAD', 'POST', 'PUT', 'DELETE', 'TRACE']
+
 
 class HttpAcceptMiddleware(object):
     '''
@@ -23,6 +25,7 @@ class HttpAcceptMiddleware(object):
         See HTTP RFC section 14.1
         '''
         accept_val = request.META.get('HTTP_ACCEPT', None)
+
         if accept_val:
             request.accept = MIMEAccept('Accept', accept_val)
         else:
@@ -42,6 +45,7 @@ class HttpMethodsFallbackMiddleware(object):
     def process_request(self, request):
         if request.POST and request.POST.has_key(self.FALLBACK_PARAM):
             method = request.POST[self.FALLBACK_PARAM]
+
             if method in ALL_HTTP_METHODS:
                 request.method = request.POST[self.FALLBACK_PARAM]
             else:

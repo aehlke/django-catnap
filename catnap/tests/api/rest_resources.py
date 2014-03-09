@@ -1,4 +1,4 @@
-from catnap.restresources import RestResource, RestModelResource
+from catnap.rest_resources import RestResource, RestModelResource
 from django.core.urlresolvers import reverse
 
 

@@ -7,9 +7,9 @@ from django.shortcuts import get_object_or_404, render_to_response
 from django.template import RequestContext, loader
 from django.core.urlresolvers import reverse
 from django.utils.decorators import method_decorator
-from catnap.restviews import (JsonEmitterMixin, AutoContentTypeMixin,
+from catnap.rest_views import (JsonEmitterMixin, AutoContentTypeMixin,
         RestView, ListView, DetailView)
-from restresources import UserResource, DeckResource
+from rest_resources import UserResource, DeckResource
 import models
 
 

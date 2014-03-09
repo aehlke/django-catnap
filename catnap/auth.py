@@ -6,14 +6,12 @@ import base64
 from django.contrib.auth import authenticate as django_authenticate
 from django.middleware.csrf import CsrfViewMiddleware
 
-from exceptions import HttpUnauthorizedException
+from exceptions import NotAuthenticated
 
 
-class Authentication(object):
+class BaseAuthentication(object):
     '''
     A simple base class to establish the protocol for auth.
-    
-    By default, this indicates the user is always authenticated.
     '''
     def authenticate(self, request, **kwargs):
         '''
@@ -23,9 +21,10 @@ class Authentication(object):
         but if authentication fails, it should raise an exception, 
         usually an `HttpException` subclass.
         '''
-    
+        raise NotImplementedError("Must override the authenticate method.")
 
-class BasicAuthentication(Authentication):
+
+class BasicAuthentication(BaseAuthentication):
     '''
     Handles HTTP Basic auth against a specific auth backend if provided,
     or against all configured authentication backends using the
@@ -47,8 +46,7 @@ class BasicAuthentication(Authentication):
 
     def _unauthorized(self):
         #FIXME: Sanitize realm.
-        raise HttpUnauthorizedException("Basic Realm='%s'" % self.realm)
-        #raise HttpUnauthorizedException("Basic Realm='%s'" % self.realm)
+        raise NotAuthenticated(basic_realm=self.realm)
 
     def authenticate(self, request, **kwargs):
         '''
@@ -60,7 +58,7 @@ class BasicAuthentication(Authentication):
         '''
         if not request.META.get('HTTP_AUTHORIZATION'):
             self._unauthorized()
-        
+
         try:
             (auth_type, data) = request.META['HTTP_AUTHORIZATION'].split()
             if auth_type.lower() != 'basic':
@@ -74,10 +72,10 @@ class BasicAuthentication(Authentication):
         if len(bits) != 2:
             self._unauthorized()
 
-        if self.backend:
-            user = self.backend.authenticate(username=bits[0], password=bits[1])
-        else:
+        if self.backend is None:
             user = django_authenticate(username=bits[0], password=bits[1])
+        else:
+            user = self.backend.authenticate(username=bits[0], password=bits[1])
 
         if user is None:
             self._unauthorized()
@@ -85,40 +83,40 @@ class BasicAuthentication(Authentication):
         request.user = user
 
 
-class DjangoContribAuthentication(Authentication):
-    '''Use Djagno's built-in request session for authentication.'''
-    def authenticate(self, request, **kwargs):
-        if getattr(request, 'user', None) and request.user.is_active:                
-            resp = CsrfViewMiddleware().process_view(request, None, (), {})
-            if resp is None:  # csrf passed
-                return request.user
-        return None
+#class DjangoContribAuthentication(BaseAuthentication):
+#    '''
+#    Uses Django's built-in request session for authentication.
+#    '''
+#    def authenticate(self, request, **kwargs):
+#        if getattr(request, 'user', None) and request.user.is_active:                
+#            resp = CsrfViewMiddleware().process_view(request, None, (), {})
+
+#            if resp is None: # csrf passed
+#                return request.user
+
+#        return None
 
 
 class AuthenticationMixin(object):
     '''
     Mixin to use for catnap REST views.
 
-    You must override the `authenticator` property with whichever
-    authentication method you want. It defaults to a debug-mode
-    one which always authenticates successfully.
+    You must override the `authenticators` property with whichever
+    authentication methods you want.
     '''
-    # Which authentication to use.
-    authenticator = Authentication()
     authenticators = None
 
     def dispatch(self, request, *args, **kwargs):
-        if getattr(self, 'authenticators', None):
-            # Try the authenticators until one works.
-            for authenticator in self.authenticators:
-                try:
-                    authenticator.authenticate(request)
-                except HttpUnauthorizedException:
-                    pass
-                else:
-                    break
-        else:
-            self.authenticator.authenticate(request)
+        if self.authenticators is None:
+            raise NotImplementedError("Must override the authenticators property.")
+
+        for authenticator in self.authenticators:
+            try:
+                authenticator.authenticate(request)
+            except NotAuthenticated:
+                pass
+            else:
+                break
 
         return super(AuthenticationMixin, self).dispatch(
             request, *args, **kwargs)
