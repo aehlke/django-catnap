@@ -1,7 +1,6 @@
 from django.core.exceptions import ImproperlyConfigured
 from django.http import HttpResponse
 from django.http import HttpResponseNotAllowed, HttpResponseBadRequest
-from django.utils import simplejson as json
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic.base import View
@@ -25,22 +24,22 @@ class _HttpResponseShortcuts(object):
     def see_other(self, redirect_to):
         return self.parent.get_response(redirect_to,
                 content_type='',
-                httpresponse_class=HttpResponseSeeOther)
+                response_class=HttpResponseSeeOther)
 
     def created(self, location):
         return self.parent.get_response(location,
                 content_type='',
-                httpresponse_class=HttpResponseCreated)
+                response_class=HttpResponseCreated)
 
     def temporary_redirect(self, redirect_to):
         return self.parent.get_response(redirect_to,
                 content_type='',
-                httpresponse_class=HttpResponseTemporaryRedirect)
+                response_class=HttpResponseTemporaryRedirect)
 
     def no_content(self):
         return self.parent.get_response(None,
                 content_type='',
-                httpresponse_class=HttpResponseNoContent)
+                response_class=HttpResponseNoContent)
         
 
 
@@ -78,11 +77,11 @@ class RestView(View):
     def get_response(self,
             content,
             content_type=None,
-            httpresponse_class=HttpResponse,
-            **httpresponse_kwargs):
+            response_class=HttpResponse,
+            **response_kwargs):
         '''
         Construct an `HttpResponse` object, or whatever response class
-        is specified by `httpresponse_class`.
+        is specified by `response_class`.
 
         The `content_type` defaults to whatever `self.content_type`
         evaluates to.
@@ -103,9 +102,9 @@ class RestView(View):
         if content_type == '':
             content_type = None
 
-        return httpresponse_class(content or '',
-                                  content_type=content_type,
-                                  **httpresponse_kwargs)
+        return response_class(content or '',
+                              content_type=content_type,
+                              **response_kwargs)
 
 
 class SerializableMultipleObjectMixin(MultipleObjectMixin):
@@ -129,23 +128,7 @@ class SerializableMultipleObjectMixin(MultipleObjectMixin):
         '''
         Get the context for this view.
         '''
-        #queryset = kwargs.pop('object_list')
-        #import pdb;pdb.set_trace()
         queryset = self.get_queryset()
-        #TODO add pagination
-        #page_size = self.get_paginate_by(queryset)
-        #if page_size:
-        #    paginator, page, queryset, is_paginated = self.paginate_queryset(
-        #            queryset, page_size)
-        #    context = {
-        #        #'paginator': paginator,
-        #        'page_obj': page,
-        #        'is_paginated': is_paginated,
-        #    }
-        #else:
-        #    context = {
-        #        'is_paginated': False,
-        #    }
 
         context = {}
 
@@ -156,6 +139,7 @@ class SerializableMultipleObjectMixin(MultipleObjectMixin):
         context.update(kwargs)
 
         return context
+
 
 class _ResourceClassDependencyMixin(object):
     resource_class = None
@@ -228,7 +212,6 @@ class RestSingleObjectMixin(SingleObjectMixin,
         return context
 
 
-
 class DetailView(RestSingleObjectMixin, View):
     def get(self, request, **kwargs):
         context = self.get_context_data()
@@ -255,12 +238,13 @@ class _BaseEmitterMixin(object):
         raise NotImplementedError(
                 'serialize_context method must be implemented in subclass.')
 
-    def render_to_response(self, context):
+    def render_to_response(self, context, **response_kwargs):
         '''
         Returns a response containing `context` as payload,
         using the implemented serializer method.
         '''
-        return self.get_response(self.serialize_context(context))
+        return self.get_response(self.serialize_context(context),
+                                 **response_kwargs)
 
 
 class JsonEmitterMixin(_BaseEmitterMixin):
@@ -334,56 +318,4 @@ class AutoContentTypeMixin(object):
 #class Deck(ManabiResourceView):
 #    def GET(self, request):
 #        pass
-
-    
-
-
-
-
-
-#class ResourceView(View):
-#    '''
-#    Currently we only support a single content type per resource.
-#    '''
-#    content_type = None
-
-#    def __call__(self):
-#        resp = self._route(self.request.method)
-#        resp = self._process_response(resp)
-#        return self.process_response(resp)
-        
-#    def _process_response(self, response):
-#        if self.content_type:
-#            response['Content-Type'] = self.content_type
-
-#        # Make sure the `Accept` header matches our content type.
-#        if self.content_type not in self.request.accept:
-#            return HttpResponseNotAcceptable()
-            
-#        return response
-
-#    def process_response(self, response):
-#        '''
-#        Called on each view method return value.
-#        Override this in a sublcass to add filtering to the HTTP
-#        response object.
-#        '''
-#        return response
-        
-
-#class JsonMixin(object):
-#    '''
-#    View methods should return data structures which are 
-#    serializable into JSON. This serializes them and puts them
-#    into an HttpResponse instance.
-
-#    Sets `content_type` to "application/json" which should absolutely 
-#    be overridden with a more descriptive content type.
-#    '''
-#    # Override this for vendor-specific content types.
-#    #     e.g "application/vnd.mycompany.FooBar+json"
-#    content_type = 'application/json'
-
-
-
 

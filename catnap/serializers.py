@@ -2,17 +2,19 @@
 # dojango's util/__init__.py,
 # and from http://djangosnippets.org/snippets/1162/
 
-from django.core.serializers.json import DateTimeAwareJSONEncoder
-import decimal, re, inspect
 import copy
+import decimal
+import inspect
+import json
+import re
+
+from django.core.serializers.json import DateTimeAwareJSONEncoder
 
 from django.db.models.query import QuerySet, ValuesQuerySet
 from django.db.models import Model, permalink
-from django.utils import simplejson as json
 from django.utils.xmlutils import SimplerXMLGenerator
 from django.utils.encoding import smart_unicode
 from django.core.urlresolvers import reverse, NoReverseMatch
-from django.core.serializers.json import DateTimeAwareJSONEncoder
 from django.http import HttpResponse
 from django.core import serializers
 from django.utils.functional import Promise
