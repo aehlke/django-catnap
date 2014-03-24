@@ -13,7 +13,6 @@ from catnap.http import (HttpResponseNotAcceptable, HttpResponseNoContent,
 from catnap.serializers import json_serialize
 
 
-
 class _HttpResponseShortcuts(object):
     '''
     Shortcuts for `RestView.get_response`.
@@ -40,7 +39,6 @@ class _HttpResponseShortcuts(object):
         return self.parent.get_response(None,
                 content_type='',
                 response_class=HttpResponseNoContent)
-        
 
 
 class RestView(View):

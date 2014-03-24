@@ -9,7 +9,13 @@ class FormMixin(django.views.generic.edit.FormMixin):
         return self.render_to_response(context, status=201)
 
     def form_invalid(self, form):
-        raise Exception("todo")
+        context = form.errors
+        print 'testing'
+        print form.errors.as_json()
+        from catnap.serializers import base_serialize
+        print base_serialize(form.errors)
+        print form.errors.items()
+        return self.render_to_response(context, status=422)
 
 
 class ModelFormMixin(FormMixin, RestSingleObjectMixin,
@@ -17,7 +23,10 @@ class ModelFormMixin(FormMixin, RestSingleObjectMixin,
     pass
 
 
-class BaseFormView(FormMixin, RestView):
+class FormViewMixin(FormMixin, RestView):
+    '''
+    Currently only handles creation.
+    '''
     def post(self, request, *args, **kwargs):
         '''
         Handles POST requests, instantiating a form instance with the passed
@@ -32,8 +41,9 @@ class BaseFormView(FormMixin, RestView):
             return self.form_invalid(form)
 
 
-class CreateView(RestSingleObjectMixin, ModelFormMixin, BaseFormView):
+class ModelFormViewMixin(ModelFormMixin, FormViewMixin):
     def post(self, request, *args, **kwargs):
         self.object = None
-        return super(CreateView, self).post(request, *args, **kwargs)
+
+        return super(ModelFormViewMixin, self).post(request, *args, **kwargs)
 

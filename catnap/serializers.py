@@ -12,6 +12,7 @@ from django.core.serializers.json import DateTimeAwareJSONEncoder
 
 from django.db.models.query import QuerySet, ValuesQuerySet
 from django.db.models import Model, permalink
+from django.forms.utils import ErrorList
 from django.utils.xmlutils import SimplerXMLGenerator
 from django.utils.encoding import smart_unicode
 from django.core.urlresolvers import reverse, NoReverseMatch
@@ -61,7 +62,8 @@ def base_serialize(data):
         if isinstance(thing, (QuerySet, ValuesQuerySet)):
             # Actually its the same as a list ...
             ret = _list(thing)
-        #elif isinstance(
+        elif isinstance(thing, ErrorList) and hasattr(thing, 'get_json_data'):
+            ret = thing.get_json_data(escape_html=False)
         elif isinstance(thing, (tuple, list, set)):
             ret = _list(thing)
         elif isinstance(thing, dict):
