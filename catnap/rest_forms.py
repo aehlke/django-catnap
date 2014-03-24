@@ -4,23 +4,40 @@ from catnap.rest_views import RestView, RestSingleObjectMixin
 
 
 class FormMixin(django.views.generic.edit.FormMixin):
+    def get_form_kwargs(self):
+        kwargs = super(FormMixin, self).get_form_kwargs()
+
+        if 'data' in kwargs:
+            kwargs['data'] = self.request.DATA
+            print self.request.DATA
+
+        return kwargs
+
     def form_valid(self, form):
         context = self.get_context_data()
         return self.render_to_response(context, status=201)
 
     def form_invalid(self, form):
         context = form.errors
-        print 'testing'
-        print form.errors.as_json()
-        from catnap.serializers import base_serialize
-        print base_serialize(form.errors)
-        print form.errors.items()
         return self.render_to_response(context, status=422)
 
 
 class ModelFormMixin(FormMixin, RestSingleObjectMixin,
                      django.views.generic.edit.ModelFormMixin):
-    pass
+    def get_queryset(self):
+        '''
+        The built-in Django ModelFormMixin isn't smart enough to
+        look inside the ModelForm for the model when `self.model`
+        is missing, so we do so here.
+        '''
+        try:
+            return super(ModelFormMixin, self).get_queryset()
+        except ImproperlyConfigured as e:
+            return self.get_form_class().Meta.model._default_manager.all()
+
+    def form_valid(self, form):
+        self.object = form.save()
+        return super(ModelFormMixin, self).form_valid(form)
 
 
 class FormViewMixin(FormMixin, RestView):

@@ -1,6 +1,7 @@
-from django.contrib.sites.models import Site
-from django.conf import settings
 import urlparse
+
+from django.conf import settings
+from django.contrib.sites.models import Site
 from django_urls import UrlMixin
 
 
@@ -44,7 +45,6 @@ class RestModelResource(RestResource):
             if not self.fields or k in self.fields:
                 #ret[k] = _any(getattr(obj, k))
                 ret[k] = getattr(obj, k)
-        #import pdb;pdb.set_trace()
         return ret
 
     def get_data(self):
