@@ -21,7 +21,6 @@ def relative_to_absolute_url(path):
         return prefix + path
 
 class UrlMixin(object):
-    
     def get_url(self):
         if hasattr(self.get_url_path, 'dont_recurse'):
             raise NotImplementedError
@@ -47,5 +46,4 @@ class UrlMixin(object):
 def absolute_reverse(viewname, *args, **kwargs):
     path = reverse(viewname, *args, **kwargs)
     return relative_to_absolute_url(path)
-
 

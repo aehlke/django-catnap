@@ -34,7 +34,7 @@ import base64
 from django.contrib.auth import authenticate
 from django.conf import settings
 
-from exceptions import NotAuthenticated, ParseError
+from catnap.exceptions import AuthenticationFailed, ParseError
 
 # Written by sgk, adapted by Alex Ehlke for django-catnap.
 
@@ -50,9 +50,9 @@ class BasicAuthMiddleware(object):
     This middleware must be placed in the 'settings.py' MIDDLEWARE_CLASSES
     definition before the Django builtin 'AuthenticationMiddleware'.
 
-    Uses the setting `BASIC_AUTH_REALM`.
+    Uses the settings `BASIC_AUTH_CHALLENGE` and `BASIC_AUTH_REALM`.
     '''
-    def process_request(self, request):
+    def _process_request(self, request):
         if hasattr(request, '_cached_user'):
             return
 
@@ -69,14 +69,22 @@ class BasicAuthMiddleware(object):
 
         try:
             username, password = base64.b64decode(encoded).split(':')
+            print username, password
         except ValueError:
             raise ParseError()
 
-        user = authenticate(username, password)
+        user = authenticate(username=username, password=password)
 
         if user is None or not user.is_active:
             raise AuthenticationFailed(
-                basic_realm=getattr(settings, 'BASIC_AUTH_REALM', 'django-catnap'))
+                challenge=getattr(settings, 'BASIC_AUTH_CHALLENGE', 'Basic'),
+                realm=getattr(settings, 'BASIC_AUTH_REALM', 'django-catnap'))
 
         request._cached_user = user
+
+    def process_request(self, request):
+        try:
+            self._process_request(request)
+        except AuthenticationFailed as e:
+            return e.response
 

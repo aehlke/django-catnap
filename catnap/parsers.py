@@ -4,6 +4,8 @@ import json
 
 from webob.acceptparse import MIMEAccept
 
+from catnap.exceptions import ParseError
+
 
 class BaseParser(object):
     mime_accept = None
