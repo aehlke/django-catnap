@@ -106,7 +106,7 @@ class RestView(View):
         evaluates to.
 
         To take advantage of `self.content_type` and other mixins
-        which may process responses, this method should always be used 
+        which may process responses, this method should always be used
         to construct `HttpResponse` objects (or any other methods
         which end up calling this one) instead of using `HttpResponse`
         directly.
@@ -142,7 +142,7 @@ class SerializableMultipleObjectMixin(MultipleObjectMixin):
         return super(
                 SerializableMultipleObjectMixin, self).get_context_object_name(
                 object_list) or 'object_list'
-    
+
     def get_context_data(self, **kwargs):
         '''
         Get the context for this view.
@@ -207,9 +207,9 @@ class RestSingleObjectMixin(SingleObjectMixin,
     This is a version of `SingleObjectMixin` which is more careful
     to avoid duplicate or otherwise unnecessary context items.
 
-    Instantiates a `Resource` object for the given detail object, and uses 
-    its `get_data` return value for the context. The entire context is 
-    the object itself, instead of the default Django behavior of having 
+    Instantiates a `Resource` object for the given detail object, and uses
+    its `get_data` return value for the context. The entire context is
+    the object itself, instead of the default Django behavior of having
     the object a level deep, e.g. `{"object": etc}`.
     '''
     def get_context_data(self, **kwargs):
@@ -296,18 +296,18 @@ class AutoContentTypeMixin(object):
     your own defaults.
 
     Ex.:
-        
+
         class MyAppResourceView(ResourceView, AutoContentTypeMixin):
             content_type_template_string = "application/vnd.myapp.\{0\}+json"
-        
+
         class AuthorList(MyAppResourceView):
             # This class will have a content_type property containing:
             #   "application/vnd.myapp.AuthorList+json"
             pass
 
     You can still override this by specifying a `content_type` property
-    in your subclass, of course. You'd want to do that if you had 
-    several views which respond with the same content types. This mixin 
+    in your subclass, of course. You'd want to do that if you had
+    several views which respond with the same content types. This mixin
     works best for the common case of one content type per view.
     '''
     # Override this when you subclass AutoContentTypeMixin.
@@ -319,7 +319,6 @@ class AutoContentTypeMixin(object):
 
     @property
     def content_type(self):
-        return 'application/json'
         if self.content_type_template_string:
             subtype = self.content_subtype or self.__class__.__name__
             return self.content_type_template_string.format(subtype)
