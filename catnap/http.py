@@ -1,5 +1,5 @@
 '''
-This module adds missing django.http.HttpResponse subclasses for more 
+This module adds missing django.http.HttpResponse subclasses for more
 status codes.
 '''
 from django.http import HttpResponse
@@ -56,4 +56,3 @@ class HttpResponseRequestEntityTooLarge(HttpResponse):
 
 class HttpResponseUnsupportedMediaType(HttpResponse):
     status_code = 415
-

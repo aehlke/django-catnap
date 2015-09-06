@@ -10,7 +10,7 @@ import re
 
 from django.core.serializers.json import DateTimeAwareJSONEncoder
 
-from django.db.models.query import QuerySet, ValuesQuerySet
+from django.db.models.query import QuerySet
 from django.db.models import Model, permalink
 from django.forms.utils import ErrorList
 from django.utils.xmlutils import SimplerXMLGenerator
@@ -43,7 +43,7 @@ reverser = permalink
 def base_serialize(data):
     '''
     Super serializer. All other serializers should wrap
-    this one. Returns a serialized `dict`. 
+    this one. Returns a serialized `dict`.
 
     Recursively serialize a lot of types, and
     in cases where it doesn't recognize the type,
@@ -59,7 +59,7 @@ def base_serialize(data):
         '''
         ret = None
 
-        if isinstance(thing, (QuerySet, ValuesQuerySet)):
+        if isinstance(thing, QuerySet):
             # Actually its the same as a list ...
             ret = _list(thing)
         elif isinstance(thing, ErrorList) and hasattr(thing, 'get_json_data'):
@@ -183,7 +183,7 @@ def json_serialize(data):
     #        # json.dumps() cant handle Decimal
     #        ret = str(data)
     #    elif isinstance(data, datetime.datetime):
-    #        # For dojo.date.stamp we convert the dates 
+    #        # For dojo.date.stamp we convert the dates
     #        # to use 'T' as separator instead of space
     #        # i.e. 2008-01-01T10:10:10 instead of 2008-01-01 10:10:10
     #        ret = str(data).replace(' ', 'T')
@@ -197,4 +197,4 @@ def json_serialize(data):
     return json.dumps(ret,
             cls=DateTimeAwareJSONEncoder,
             ensure_ascii=False, sort_keys=True, indent=4)
-    
+
