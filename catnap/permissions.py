@@ -120,4 +120,3 @@ class IsAuthenticated(BasePermission):
     def verify_permission(self, request, view):
         if not request.user.is_authenticated():
             raise NotAuthenticated()
-
